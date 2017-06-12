@@ -1,5 +1,6 @@
 import * as hapi from 'hapi';
 import { graphqlHapi, graphiqlHapi } from './hapiApollo';
+import { expect } from 'chai';
 import 'mocha';
 
 import testSuite, { schema as Schema, CreateAppOptions  } from 'graphql-server-integration-testsuite';
@@ -30,6 +31,41 @@ function createApp(options: CreateAppOptions) {
 
   return server.listener;
 }
+
+describe('hapiApollo', () => {
+  it('merges optional GraphiQL route config with predefined config', () => {
+    const server = new hapi.Server();
+    server.connection();
+
+    server.register({
+      register: graphiqlHapi,
+      options: {
+        path: '/graphiql',
+        graphiqlOptions: {
+          endpointURL: '/graphql',
+        },
+        route: {
+          plugins: {
+            foobar: {},
+          },
+          pre: [{
+            assign: 'foobar',
+            method: () => 'foobar',
+          }],
+        },
+      },
+    });
+
+    const connection = server.table()[0];
+    const graphiqlRoute = connection.table[0];
+    const { plugins, pre } = graphiqlRoute.settings;
+
+    const preAssigns = (pre as hapi.RoutePrerequisiteObjects[]).map(p => p.assign);
+
+    expect(plugins).to.contain.keys('foobar', 'graphiql');
+    expect(preAssigns).to.include.members(['foobar', 'graphiqlParams', 'graphiQLString']);
+  });
+});
 
 describe('integration:Hapi', () => {
   testSuite(createApp);

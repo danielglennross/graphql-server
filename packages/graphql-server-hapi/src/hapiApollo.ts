@@ -80,11 +80,14 @@ const graphiqlHapi: IRegister =  function(server: Server, options: GraphiQLPlugi
   server.method('getGraphiQLParams', getGraphiQLParams);
   server.method('renderGraphiQL', renderGraphiQL);
 
-  const config = Object.assign(options.route || {}, {
-    plugins: {
+  const { route = {} } = options;
+  const { plugins = {}, pre = [] } = route;
+
+  const config = Object.assign(route, {
+    plugins: {...plugins,
       graphiql: options.graphiqlOptions,
     },
-    pre: [{
+    pre: [...pre, {
       assign: 'graphiqlParams',
       method: 'getGraphiQLParams',
     }, {
